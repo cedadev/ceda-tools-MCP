@@ -5,9 +5,27 @@ from mcp.server.fastmcp import FastMCP
 mcp = FastMCP("ceda-tools")
 observation_api_url = "http://api.catalogue.ceda.ac.uk/api/v3/observations/"
 
-async def call_observation_api(observation_uuid):
-    response = requests.get(observation_api_url+"?uuid="+observation_uuid)
+async def call_observation_api(parameter1, parameter2=""):
+    response = requests.get(observation_api_url+parameter1+parameter2)
     return response.json()
+
+
+# search observations using keywords (datasets)
+@mcp.tool()
+async def search_whole_observations_with_keywords(abstract_contains: str, title_contains: str) -> str:
+    """
+    Search for a MOLES observation record using keywords for title and abstract.
+    This function will return the whole JSON response.
+    """
+
+    return await call_observation_api("?abstract__icontains="+abstract_contains, "&title__icontains="+title_contains)
+
+
+# print(asyncio.run(call_observation_api("?abstract__icontains="+"sentinel", "&title__icontains="+"ATSR")))
+# print("")
+# print("")
+# print("")
+# print(asyncio.run(call_observation_api("?uuid="+"7e23b82ec3bdc8e5297c0b623697c559")))
 
 # search observations (datasets)
 @mcp.tool()
@@ -17,7 +35,7 @@ async def search_whole_observation_by_uuid(observation_uuid: str) -> str:
     This function will return the whole JSON response.
     """
 
-    return await call_observation_api(observation_uuid)
+    return await call_observation_api("?uuid="+observation_uuid)
 
 
 
@@ -29,7 +47,7 @@ async def get_observation_filepath_by_uuid(observation_uuid: str) -> str:
     This function will return the filepath of the dataset.
     """
 
-    json_response = await call_observation_api(observation_uuid)
+    json_response = await call_observation_api("?uuid="+observation_uuid)
     
     if json_response["count"] != 1:
         return "MOLES record not found (or has multiple uuids (unlikely))"
@@ -46,7 +64,7 @@ async def get_observation_completion_status_by_uuid(observation_uuid: str) -> st
     This function will return only the completion status.
     """
 
-    json_response = await call_observation_api(observation_uuid)
+    json_response = await call_observation_api("?uuid="+observation_uuid)
     
     if json_response["count"] != 1:
         return "MOLES record not found (or has multiple uuids (unlikely))"
