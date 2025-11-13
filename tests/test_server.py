@@ -6,9 +6,10 @@ from mcp.client.stdio import stdio_client
 
 SERVER_PATH = "main.py"
 EXPECTED_TOOLS = [
+    "search_whole_observations_with_keywords",
     "search_whole_observation_by_uuid",
     "get_observation_filepath_by_uuid",
-    "get_observation_completion_status_by_uuid"
+    "get_observation_completion_status_by_uuid",
 ]
 
 

@@ -66,10 +66,10 @@ main.py
 ```
 
 once that is done, open copilot in vs code and click the bottom on the bottom left of the input box.
-Here select Agent. Once agent is selected, click the tools idon on the bottom right (to the left of send). here scroll to the bottom of the Configure Tools menu and look for `ecommerce_tools`. Tick that box if it isn't already.
-Within ecommerce_tools, there should be a list of all of the tools created in the tutorial.
+Here select Agent. Once agent is selected, click the tools icon on the bottom right (to the left of send). here scroll to the bottom of the Configure Tools menu and look for `ceda-tools`. Tick that box if it isn't already.
+Within ceda-tools, there should be a list of all of the tools created in the tutorial.
 
-Once this has been selected, you can ask the chatbot for information, e.g: `What customer IDs match the name Alice Johnson?` and it should run a tool and ask you permission to do so.
+Once this has been selected, you can ask the chatbot for information, and it should run a tool and ask you permission to do so.
 
 
 For more information on MCP in VS Code, see here:

@@ -1,76 +1,102 @@
 import asyncio
-import requests
+import aiohttp
+from urllib.parse import urlencode
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("ceda-tools")
-observation_api_url = "http://api.catalogue.ceda.ac.uk/api/v3/observations/"
+OBSERVATION_API_URL = "http://api.catalogue.ceda.ac.uk/api/v3/observations/"
 
-async def call_observation_api(parameter1, parameter2=""):
-    response = requests.get(observation_api_url+parameter1+parameter2)
-    return response.json()
+async def call_observation_api(params: dict) -> dict:
+    """
+    Call the CEDA observations API with the given parameters.
+    Returns the JSON response as a Python dict.
+    """
+    query_string = urlencode(params)
+    url = f"{OBSERVATION_API_URL}?{query_string}"
 
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status != 200:
+                return {
+                    "error": f"Request failed with status {response.status}",
+                    "url": url,
+                }
+            try:
+                return await response.json()
+            except Exception as e:
+                return {
+                    "error": f"Failed to parse JSON: {str(e)}",
+                    "url": url,
+                }
 
-# search observations using keywords (datasets)
+# --------------------------------------------------------------------------- #
+#  TOOLS
+# --------------------------------------------------------------------------- #
+
 @mcp.tool()
-async def search_whole_observations_with_keywords(abstract_contains: str, title_contains: str) -> str:
+async def search_whole_observations_with_keywords(
+    abstract_contains: str, title_contains: str
+) -> dict:
     """
     Search for a MOLES observation record using keywords for title and abstract.
-    This function will return the whole JSON response.
+    Returns the full JSON response.
     """
+    params = {
+        "abstract__icontains": abstract_contains,
+        "title__icontains": title_contains,
+    }
+    return await call_observation_api(params)
 
-    return await call_observation_api("?abstract__icontains="+abstract_contains, "&title__icontains="+title_contains)
 
-
-# print(asyncio.run(call_observation_api("?abstract__icontains="+"sentinel", "&title__icontains="+"ATSR")))
-# print("")
-# print("")
-# print("")
-# print(asyncio.run(call_observation_api("?uuid="+"7e23b82ec3bdc8e5297c0b623697c559")))
-
-# search observations (datasets)
 @mcp.tool()
-async def search_whole_observation_by_uuid(observation_uuid: str) -> str:
+async def search_whole_observation_by_uuid(observation_uuid: str) -> dict:
     """
-    Search for a MOLES observation record using its uuid.
-    This function will return the whole JSON response.
+    Search for a MOLES observation record using its UUID.
+    Returns the full JSON response.
     """
-
-    return await call_observation_api("?uuid="+observation_uuid)
-
+    return await call_observation_api({"uuid": observation_uuid})
 
 
-# get filepath given an observation (dataset) id
+
 @mcp.tool()
-async def get_observation_filepath_by_uuid(observation_uuid: str) -> str:
+async def get_observation_filepath_by_uuid(observation_uuid: str) -> dict:
     """
-    Search for a MOLES observation record using its uuid.
-    This function will return the filepath of the dataset.
+    Retrieve the dataset filepath from a MOLES observation record by UUID.
+    Returns a dict with either the filepath or an error message.
     """
+    response = await call_observation_api({"uuid": observation_uuid})
 
-    json_response = await call_observation_api("?uuid="+observation_uuid)
-    
-    if json_response["count"] != 1:
-        return "MOLES record not found (or has multiple uuids (unlikely))"
+    if response.get("count") != 1:
+        return {"error": "MOLES record not found or multiple UUIDs found", "response": response}
 
-    return (json_response["results"][0]["result_field"]["dataPath"])
+    try:
+        filepath = response["results"][0]["result_field"]["dataPath"]
+        return {"filepath": filepath}
+    except KeyError:
+        return {"error": "Filepath not found in record", "response": response}
 
 
 
-# Is MOLES record complete
 @mcp.tool()
-async def get_observation_completion_status_by_uuid(observation_uuid: str) -> str:
+async def get_observation_completion_status_by_uuid(observation_uuid: str) -> dict:
     """
-    Search for a MOLES observation record using its uuid.
-    This function will return only the completion status.
+    Retrieve the completion status of a MOLES observation record by UUID.
+    Returns a dict with either the status or an error message.
     """
+    response = await call_observation_api({"uuid": observation_uuid})
 
-    json_response = await call_observation_api("?uuid="+observation_uuid)
-    
-    if json_response["count"] != 1:
-        return "MOLES record not found (or has multiple uuids (unlikely))"
+    if response.get("count") != 1:
+        return {"error": "MOLES record not found or multiple UUIDs found", "response": response}
 
-    return (json_response["results"][0]["status"])
+    try:
+        status = response["results"][0]["status"]
+        return {"status": status}
+    except KeyError:
+        return {"error": "Status field not found in record", "response": response}
 
+# --------------------------------------------------------------------------- #
+#  ENTRY POINT
+# --------------------------------------------------------------------------- #
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")
