@@ -5,13 +5,28 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("ceda-tools")
 OBSERVATION_API_URL = "http://api.catalogue.ceda.ac.uk/api/v3/observations/"
+DEFAULT_PAGE_SIZE = 3
+STRIP_FIELDS = {
+    "phenomena",
+    "identifier_set",
+    "responsiblepartyinfo_set",
+    "discoveryKeywords",
+}
 
-async def call_observation_api(params: dict) -> dict:
+async def call_observation_api(params: dict, page: int = 1) -> dict:
     """
     Call the CEDA observations API with the given parameters.
+    Applies pagination and removes heavy fields from each dataset.
     Returns the JSON response as a Python dict.
     """
-    query_string = urlencode(params)
+    # Add pagination params to query
+    paginated_params = {
+        **params,
+        "limit": DEFAULT_PAGE_SIZE,
+        "offset": (page - 1) * DEFAULT_PAGE_SIZE,
+    }
+    
+    query_string = urlencode(paginated_params)
     url = f"{OBSERVATION_API_URL}?{query_string}"
 
     async with aiohttp.ClientSession() as session:
@@ -22,19 +37,27 @@ async def call_observation_api(params: dict) -> dict:
                     "url": url,
                 }
             try:
-                return await response.json()
+                data = await response.json()
             except Exception as e:
                 return {
                     "error": f"Failed to parse JSON: {str(e)}",
                     "url": url,
                 }
 
+    # Strip heavy fields
+    if "results" in data and isinstance(data["results"], list):
+        for entry in data["results"]:
+            for field in STRIP_FIELDS:
+                entry.pop(field, None)
+
+    return data
+
 # --------------------------------------------------------------------------- #
 #  TOOLS
 # --------------------------------------------------------------------------- #
 
 @mcp.tool()
-async def search_whole_observations_with_keywords(
+async def search_whole_observations_with_keywords( # WAY TOO BIG FOR MODELS (maybe make it return the first 5? Paginate it so you can chose different sections of the 5?)
     abstract_contains: str, title_contains: str
 ) -> dict:
     """
