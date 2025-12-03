@@ -24,5 +24,21 @@ ollmcp -j config.json -m llama3.1:8b-instruct-q8_0
 run command
 
 
+(qwen works better)
+
 
 ollmcp -j config.json -m qwen3:14b
+
+
+```json
+{
+  "mcpServers": {
+    "ceda-tools": {
+      "type": "sse",
+      "url": "http://127.0.0.1:8000/sse",
+      "disabled": false
+    }
+  }
+}
+```
+config.json
