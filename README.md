@@ -17,6 +17,11 @@ pip install -r requirements.txt
 
 python main.py
 pytest -s
+
+# or
+
+python server.py --server_type=sse
+
 ```
 
 
